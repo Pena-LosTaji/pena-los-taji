@@ -104,6 +104,10 @@
         <h3>Gastos por categoría</h3>
         <div class="chart-box"><canvas id="chartCategorias"></canvas></div>
       </div>
+      <div class="card" id="cardPlanesPago" style="display:none;">
+        <h3>Pagos en cuotas pendientes</h3>
+        <div id="listaPlanesPago"></div>
+      </div>
       <div class="card">
         <h3>Deben este mes</h3>
         <div id="listaDeben"></div>
@@ -144,6 +148,26 @@
         <div id="campoDetalle">
           <label class="field">Detalle</label>
           <input id="movDetalle" type="text" placeholder="Ej: Carne y carbón / Rifa asado">
+        </div>
+        <div id="campoPlanToggle" style="display:none;">
+          <label style="display:flex; align-items:center; gap:8px; margin:10px 0 4px; font-size:13px; color:var(--ink-soft);">
+            <input type="checkbox" id="esPlanCuotas" onchange="togglePlanCuotas()" style="width:auto;">
+            Es un pago en cuotas (ej: grupo electrógeno)
+          </label>
+          <div id="camposPlan" style="display:none;">
+            <label class="field">Nombre del plan</label>
+            <input id="planNombre" type="text" placeholder="Ej: Cuota Grupo Electrógeno">
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1;">
+                <label class="field">Esta es la cuota N°</label>
+                <input id="planNumero" type="number" placeholder="Ej: 3">
+              </div>
+              <div style="flex:1;">
+                <label class="field">De un total de</label>
+                <input id="planTotal" type="number" placeholder="Ej: 3">
+              </div>
+            </div>
+          </div>
         </div>
         <div id="campoCategoria">
           <label class="field">Categoría del gasto</label>
@@ -264,6 +288,17 @@ function render(){
   renderMovimientos();
   renderSelectores();
   renderCharts();
+  renderPlanesPago();
+}
+
+function renderPlanesPago(){
+  const card = document.getElementById('cardPlanesPago');
+  const pendientes = (DATA.planesPago||[]).filter(p=>!p.completo);
+  if(!pendientes.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  document.getElementById('listaPlanesPago').innerHTML = pendientes.map(p=>`
+    <div class="row"><div><div class="name">${p.nombre}</div><div class="meta">${p.pagadas} de ${p.total} pagadas · próxima: cuota ${p.proximaCuota}</div></div>
+    <span class="pill pendiente">Falta ${p.faltan}</span></div>`).join('');
 }
 
 function tipoLabel(t){ return {CUOTA:'Cuota',APORTE_SOLIDARIO:'Aporte',OTRO_INGRESO:'Ingreso',EGRESO:'Gasto'}[t]||t; }
@@ -331,8 +366,14 @@ function setTipo(t){
   document.getElementById('campoMes').style.display = (t==='CUOTA') ? 'block':'none';
   document.getElementById('campoCategoria').style.display = (t==='EGRESO') ? 'block':'none';
   document.getElementById('campoDetalle').style.display = (t==='EGRESO'||t==='OTRO_INGRESO') ? 'block':'none';
+  document.getElementById('campoPlanToggle').style.display = (t==='EGRESO') ? 'block':'none';
 }
 setTipo('CUOTA');
+
+function togglePlanCuotas(){
+  const on = document.getElementById('esPlanCuotas').checked;
+  document.getElementById('camposPlan').style.display = on ? 'block' : 'none';
+}
 
 async function registrarMovimiento(){
   const monto = document.getElementById('movMonto').value;
@@ -348,11 +389,21 @@ async function registrarMovimiento(){
   if(tipoActual==='EGRESO') body.categoria = document.getElementById('movCategoria').value;
   if(tipoActual==='EGRESO' || tipoActual==='OTRO_INGRESO') body.detalle = document.getElementById('movDetalle').value;
 
+  if(tipoActual==='EGRESO' && document.getElementById('esPlanCuotas').checked){
+    const nombre = document.getElementById('planNombre').value.trim();
+    const n = document.getElementById('planNumero').value;
+    const total = document.getElementById('planTotal').value;
+    if(!nombre || !n || !total){ toast('Completá nombre, número y total de cuotas'); return; }
+    body.detalle = `${n}/${total} ${nombre}`;
+  }
+
   try{
     const r = await api('registrarMovimiento', body);
     document.getElementById('movMonto').value='';
     document.getElementById('movDetalle').value='';
     document.getElementById('movCategoria').value='';
+    document.getElementById('esPlanCuotas').checked=false;
+    togglePlanCuotas();
     toast('Movimiento registrado ✅');
     await boot();
     showView('movimiento');
