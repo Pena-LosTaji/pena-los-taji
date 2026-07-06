@@ -558,7 +558,7 @@ function generarPDFGrupal(compartir){
     y += 6 * lineas.length;
   });
 
-  const nombreArchivo = 'Reporte-grupal-'+fecha.replace(/\//g,'-')+'.pdf';
+  const nombreArchivo = 'Resumen de Cuenta - Peña '+(DATA.config.nombrePena||'')+' '+fecha.replace(/\//g,'-')+'.pdf';
 
   if(compartir){
     const blob = doc.output('blob');
