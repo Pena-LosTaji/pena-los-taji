@@ -313,7 +313,12 @@ function renderIntegrantes(){
   const cont = document.getElementById('listaIntegrantes');
   cont.innerHTML = DATA.estadoIntegrantes.map(p=>{
     const pend = p.mesesPendientes.length;
-    return `<div class="row"><div><div class="name">${p.nombre}</div><div class="meta">${pend ? pend+' mes(es) pendiente(s): '+p.mesesPendientes.join(', ') : 'Todo pagado'}</div></div>
+    const adel = (p.mesesAdelantados||[]).length;
+    let meta;
+    if(pend) meta = pend+' mes(es) pendiente(s): '+p.mesesPendientes.join(', ');
+    else if(adel) meta = 'Al día · adelantó '+adel+' mes(es): '+p.mesesAdelantados.join(', ');
+    else meta = 'Todo pagado';
+    return `<div class="row"><div><div class="name">${p.nombre}</div><div class="meta">${meta}</div></div>
       <span class="pill ${p.alDia?'aldia':'pendiente'}">${p.alDia?'Al día':'Debe'}</span></div>`;
   }).join('') || '<div class="empty">Todavía no cargaste integrantes</div>';
 }
@@ -491,14 +496,19 @@ function generarPDFGrupal(){
   }
 
   y+=6; doc.setFontSize(13); doc.text('Estado de integrantes', 14, y); y+=8; doc.setFontSize(9);
-  doc.setFont(undefined,'bold'); doc.text('Nombre',14,y); doc.text('Estado',100,y); y+=5;
+  doc.setFont(undefined,'bold'); doc.text('Nombre',14,y); doc.text('Detalle',70,y); y+=5;
   doc.setFont(undefined,'normal'); doc.setDrawColor(220,220,220); doc.line(14,y-3,196,y-3);
   DATA.estadoIntegrantes.forEach(p=>{
-    if(y>280){doc.addPage(); y=20;}
+    if(y>275){doc.addPage(); y=20;}
     doc.text(p.nombre,14,y);
-    doc.setTextColor(p.alDia?63:189, p.alDia?138:83, p.alDia?98:53);
-    doc.text(p.alDia?'Al día':'Debe '+p.mesesPendientes.length+' mes(es)', 100, y);
-    doc.setTextColor(30,30,30); y+=6;
+    var detalle;
+    if(!p.alDia){ doc.setTextColor(189,83,53); detalle = 'Debe: ' + p.mesesPendientes.join(', '); }
+    else if(p.mesesAdelantados && p.mesesAdelantados.length){ doc.setTextColor(63,138,98); detalle = 'Al día · adelantó: ' + p.mesesAdelantados.join(', '); }
+    else { doc.setTextColor(63,138,98); detalle = 'Al día'; }
+    var lineas = doc.splitTextToSize(detalle, 122);
+    doc.text(lineas, 70, y);
+    doc.setTextColor(30,30,30);
+    y += 6 * lineas.length;
   });
   doc.save('Reporte-grupal-'+fecha.replace(/\//g,'-')+'.pdf');
 }
