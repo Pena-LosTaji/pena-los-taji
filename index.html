@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -92,6 +93,8 @@
       <div class="kpi-grid">
         <div class="kpi good"><div class="label">En caja</div><div class="value mono" id="kpiCaja">$0</div></div>
         <div class="kpi bad"><div class="label">Gastado</div><div class="value mono" id="kpiGastos">$0</div></div>
+        <div class="kpi"><div class="label">💵 Efectivo</div><div class="value mono" id="kpiEfectivo">$0</div></div>
+        <div class="kpi"><div class="label">🏦 Transferencia</div><div class="value mono" id="kpiTransferencia">$0</div></div>
       </div>
       <div class="card">
         <h3>Ingresos vs Gastos por mes</h3>
@@ -243,6 +246,8 @@ function render(){
   document.getElementById('mesActualLabel').textContent = 'Cobrando: ' + DATA.config.mesActual + ' · Cuota ' + fmt(DATA.config.montoCuota);
   document.getElementById('kpiCaja').textContent = fmt(DATA.resumen.saldoCaja);
   document.getElementById('kpiGastos').textContent = fmt(DATA.resumen.totalEgresos);
+  document.getElementById('kpiEfectivo').textContent = fmt(DATA.resumen.cajaEfectivo);
+  document.getElementById('kpiTransferencia').textContent = fmt(DATA.resumen.cajaTransferencia);
 
   const deben = document.getElementById('listaDeben');
   deben.innerHTML = DATA.estadoGeneral.deben.length
