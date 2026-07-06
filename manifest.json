@@ -1,0 +1,16 @@
+{
+  "name": "Peña Los Taji",
+  "short_name": "Los Taji",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F7F5F0",
+  "theme_color": "#16545A",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

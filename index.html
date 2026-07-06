@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Peña Los Taji</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16545A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#F7F5F0; --surface:#FFFFFF; --ink:#1B2B2A; --ink-soft:#5C6E6C;
+    --river:#16545A; --amber:#D98F4E; --good:#3F8A62; --bad:#BD5335; --line:#E4E0D6; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; padding-bottom:76px;}
+  h1,h2,h3{font-family:'Fraunces',serif; margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  header.top{background:var(--river); color:#fff; padding:22px 20px 26px; border-radius:0 0 24px 24px; position:relative; overflow:hidden;}
+  header.top::after{content:""; position:absolute; left:0; right:0; bottom:10px; height:14px; background:repeating-linear-gradient(90deg, transparent 0 10px, rgba(255,255,255,.12) 10px 12px);}
+  header.top h1{font-size:26px; font-weight:700;}
+  header.top .sub{opacity:.85; font-size:13px; margin-top:4px;}
+  .wrap{padding:16px;}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px;}
+  .card h3{font-size:15px; color:var(--ink-soft); font-weight:600; margin-bottom:10px; text-transform:uppercase; letter-spacing:.03em;}
+  .kpi-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px;}
+  .kpi .label{font-size:12px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em;}
+  .kpi .value{font-size:20px; font-weight:600; margin-top:4px; font-family:'IBM Plex Mono';}
+  .kpi.good .value{color:var(--good);} .kpi.bad .value{color:var(--bad);}
+  .row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .row .name{font-weight:600; font-size:14.5px;}
+  .row .meta{font-size:12px; color:var(--ink-soft);}
+  .pill{font-size:11.5px; font-weight:600; padding:4px 9px; border-radius:20px; font-family:'IBM Plex Mono'; white-space:nowrap;}
+  .pill.cuota{background:#E4F1E9; color:var(--good);}
+  .pill.aporte{background:#FDF0DC; color:var(--amber-dark,#B96F31);}
+  .pill.otro{background:#E3EEF0; color:var(--river);}
+  .pill.egreso{background:#FBE6DE; color:var(--bad);}
+  .pill.pendiente{background:#FBE6DE; color:var(--bad);}
+  .pill.aldia{background:#E4F1E9; color:var(--good);}
+  button.btn{background:var(--river); color:#fff; border:none; border-radius:10px; padding:12px 16px; font-weight:600; font-size:14px; cursor:pointer;}
+  button.btn.amber{background:var(--amber);}
+  button.btn.ghost{background:transparent; color:var(--river); border:1.5px solid var(--river);}
+  button.btn.block{width:100%;}
+  input, select{width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; background:#fff; color:var(--ink);}
+  label.field{display:block; font-size:12.5px; color:var(--ink-soft); margin:10px 0 5px; font-weight:600;}
+  .seg{display:flex; gap:6px; margin-bottom:4px;}
+  .seg button{flex:1; padding:9px 4px; border-radius:9px; border:1.5px solid var(--line); background:#fff; font-size:12px; font-weight:600; color:var(--ink-soft); cursor:pointer;}
+  .seg button.active{background:var(--river); color:#fff; border-color:var(--river);}
+  nav.tabbar{position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--line); display:flex; padding:6px 4px calc(6px + env(safe-area-inset-bottom)); z-index:50;}
+  nav.tabbar button{flex:1; background:none; border:none; padding:8px 2px; font-size:10.5px; color:var(--ink-soft); cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px;}
+  nav.tabbar button.active{color:var(--river); font-weight:700;}
+  nav.tabbar .ico{font-size:19px;}
+  .view{display:none;} .view.active{display:block;}
+  .locked{position:fixed; inset:0; background:var(--river); display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:100; color:#fff; padding:24px; text-align:center;}
+  .locked h1{font-size:24px; margin-bottom:6px;}
+  .locked input{margin-top:18px; text-align:center; font-size:16px;}
+  .locked button{margin-top:14px; width:220px;}
+  .fab{position:fixed; right:16px; bottom:88px; width:54px; height:54px; border-radius:50%; background:var(--amber); color:#fff; border:none; font-size:26px; box-shadow:0 6px 16px rgba(0,0,0,.2); z-index:40; cursor:pointer;}
+  .empty{text-align:center; padding:26px 10px; color:var(--ink-soft); font-size:13.5px;}
+  .toast{position:fixed; top:16px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 18px; border-radius:30px; font-size:13.5px; z-index:200; opacity:0; transition:opacity .25s;}
+  .toast.show{opacity:1;}
+  .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:90; display:flex; align-items:flex-end;}
+  .modal{background:var(--surface); width:100%; border-radius:20px 20px 0 0; padding:20px; max-height:88vh; overflow-y:auto;}
+  .modal h3{font-family:'Fraunces'; font-size:19px; margin-bottom:14px;}
+  .close-x{float:right; background:none; border:none; font-size:20px; color:var(--ink-soft); cursor:pointer;}
+  .chart-box{position:relative; height:200px;}
+</style>
+</head>
+<body>
+
+<div id="lockScreen" class="locked">
+  <h1>🎣 Peña Los Taji</h1>
+  <div class="sub">Fondo común · v2</div>
+  <input id="keyInput" type="password" placeholder="Clave de acceso" />
+  <button class="btn amber" onclick="unlock()">Ingresar</button>
+</div>
+
+<div id="app" style="display:none;">
+  <header class="top">
+    <h1 id="tituloPena">Peña Los Taji</h1>
+    <div class="sub" id="mesActualLabel">Cargando...</div>
+  </header>
+
+  <div class="wrap">
+
+    <div class="view active" id="view-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi good"><div class="label">En caja</div><div class="value mono" id="kpiCaja">$0</div></div>
+        <div class="kpi bad"><div class="label">Gastado</div><div class="value mono" id="kpiGastos">$0</div></div>
+      </div>
+      <div class="card">
+        <h3>Ingresos vs Gastos por mes</h3>
+        <div class="chart-box"><canvas id="chartSerie"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Gastos por categoría</h3>
+        <div class="chart-box"><canvas id="chartCategorias"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Deben este mes</h3>
+        <div id="listaDeben"></div>
+      </div>
+      <div class="card">
+        <h3>Últimos movimientos</h3>
+        <div id="listaMovMini"></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-integrantes">
+      <div class="card">
+        <h3>Estado de cada integrante</h3>
+        <div id="listaIntegrantes"></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-movimiento">
+      <div class="card">
+        <h3>Nuevo movimiento</h3>
+        <div class="seg" id="segTipo">
+          <button class="active" data-tipo="CUOTA" onclick="setTipo('CUOTA')">Cuota</button>
+          <button data-tipo="APORTE_SOLIDARIO" onclick="setTipo('APORTE_SOLIDARIO')">Aporte</button>
+          <button data-tipo="OTRO_INGRESO" onclick="setTipo('OTRO_INGRESO')">Otro ingreso</button>
+          <button data-tipo="EGRESO" onclick="setTipo('EGRESO')">Gasto</button>
+        </div>
+
+        <div id="campoIntegrante">
+          <label class="field">Integrante</label>
+          <select id="movIntegrante"></select>
+        </div>
+        <div id="campoMes">
+          <label class="field">Mes que cubre</label>
+          <select id="movMes"></select>
+        </div>
+        <label class="field">Monto</label>
+        <input id="movMonto" type="number" placeholder="Ej: 20000">
+        <div id="campoDetalle">
+          <label class="field">Detalle</label>
+          <input id="movDetalle" type="text" placeholder="Ej: Carne y carbón / Rifa asado">
+        </div>
+        <div id="campoCategoria">
+          <label class="field">Categoría del gasto</label>
+          <input id="movCategoria" type="text" placeholder="Ej: Insumos, Alquiler, Eventos">
+        </div>
+        <label class="field">Modalidad</label>
+        <select id="movModalidad"><option>Transferencia</option><option>Efectivo</option></select>
+
+        <button class="btn block amber" style="margin-top:16px;" onclick="registrarMovimiento()">Registrar y avisar al grupo</button>
+      </div>
+
+      <div class="card">
+        <h3>Historial de movimientos</h3>
+        <div id="listaMovimientos"></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-reportes">
+      <div class="card">
+        <h3>Reporte grupal</h3>
+        <p class="empty" style="padding:0 0 12px;">Estado de todos + resumen de caja + gastos por categoría.</p>
+        <button class="btn block" onclick="generarPDFGrupal()">Generar PDF grupal</button>
+      </div>
+      <div class="card">
+        <h3>Reporte individual</h3>
+        <label class="field">Elegí integrante</label>
+        <select id="selectIndividual"></select>
+        <button class="btn block amber" style="margin-top:14px;" onclick="generarPDFIndividual()">Generar PDF individual</button>
+      </div>
+      <div class="card">
+        <h3>Recordatorios por email</h3>
+        <button class="btn block ghost" onclick="enviarRecordatorios()">Enviar a quienes deben</button>
+      </div>
+      <div class="card">
+        <h3>Tablero visual del Sheet</h3>
+        <p class="empty" style="padding:0 0 12px;">Se actualiza solo con cada cuota, pero si querés forzarlo:</p>
+        <button class="btn block ghost" onclick="refrescarTablero()">Refrescar hoja TABLERO</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<button class="fab" id="fabAdd" style="display:none;" onclick="mostrarAgregarIntegrante()">＋</button>
+
+<nav class="tabbar" id="tabbar" style="display:none;">
+  <button class="active" data-view="dashboard" onclick="showView('dashboard')"><span class="ico">🏠</span>Inicio</button>
+  <button data-view="integrantes" onclick="showView('integrantes')"><span class="ico">👥</span>Integrantes</button>
+  <button data-view="movimiento" onclick="showView('movimiento')"><span class="ico">💰</span>Movimiento</button>
+  <button data-view="reportes" onclick="showView('reportes')"><span class="ico">📄</span>Reportes</button>
+</nav>
+
+<div id="toast" class="toast"></div>
+<div id="modalRoot"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzcSDrVPAkYgZh0pS5UldO9GycL_okH_Mnr1Mm0bHmVai2bjkhb0QblhLVbLaJZDhbM/exec";
+let ACCESS_KEY = localStorage.getItem('pena_key_v2') || "";
+let DATA = null;
+let tipoActual = 'CUOTA';
+let chartSerie=null, chartCategorias=null;
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+
+async function api(action, body){
+  body = body || {}; body.action = action; body.key = ACCESS_KEY;
+  const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(body) });
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || 'Error desconocido');
+  return json;
+}
+
+function unlock(){
+  const val = document.getElementById('keyInput').value.trim();
+  if(!val){ toast('Ingresá una clave'); return; }
+  ACCESS_KEY = val; localStorage.setItem('pena_key_v2', val);
+  boot();
+}
+
+async function boot(){
+  try{
+    const data = await api('getDashboard');
+    DATA = data;
+    document.getElementById('lockScreen').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('tabbar').style.display='flex';
+    document.getElementById('fabAdd').style.display='block';
+    render();
+  }catch(e){
+    document.getElementById('lockScreen').style.display='flex';
+    document.getElementById('app').style.display='none';
+    toast('❌ ' + e.message);
+  }
+}
+
+function fmt(n){ return '$' + Number(n||0).toLocaleString('es-AR'); }
+
+function render(){
+  document.getElementById('tituloPena').textContent = 'Peña ' + (DATA.config.nombrePena||'');
+  document.getElementById('mesActualLabel').textContent = 'Cobrando: ' + DATA.config.mesActual + ' · Cuota ' + fmt(DATA.config.montoCuota);
+  document.getElementById('kpiCaja').textContent = fmt(DATA.resumen.saldoCaja);
+  document.getElementById('kpiGastos').textContent = fmt(DATA.resumen.totalEgresos);
+
+  const deben = document.getElementById('listaDeben');
+  deben.innerHTML = DATA.estadoGeneral.deben.length
+    ? DATA.estadoGeneral.deben.map(n=>`<div class="row"><span class="name">${n}</span><span class="pill pendiente">Pendiente</span></div>`).join('')
+    : '<div class="empty">Nadie debe el mes actual 🎉</div>';
+
+  const mm = document.getElementById('listaMovMini');
+  const ultimos = DATA.movimientos.slice(-4).reverse();
+  mm.innerHTML = ultimos.length
+    ? ultimos.map(m=>movRow(m)).join('')
+    : '<div class="empty">Todavía no hay movimientos</div>';
+
+  renderIntegrantes();
+  renderMovimientos();
+  renderSelectores();
+  renderCharts();
+}
+
+function tipoLabel(t){ return {CUOTA:'Cuota',APORTE_SOLIDARIO:'Aporte',OTRO_INGRESO:'Ingreso',EGRESO:'Gasto'}[t]||t; }
+function tipoPillClass(t){ return {CUOTA:'cuota',APORTE_SOLIDARIO:'aporte',OTRO_INGRESO:'otro',EGRESO:'egreso'}[t]||''; }
+
+function movRow(m){
+  const titulo = m.tipo==='CUOTA' ? (m.integranteNombre + ' · ' + m.mesCuota) : (m.detalle || tipoLabel(m.tipo));
+  return `<div class="row"><div><div class="name">${titulo}</div><div class="meta">${m.fecha}${m.categoria? ' · '+m.categoria:''}</div></div>
+    <div style="text-align:right;"><div class="meta mono">${fmt(m.monto)}</div><span class="pill ${tipoPillClass(m.tipo)}">${tipoLabel(m.tipo)}</span></div></div>`;
+}
+
+function renderIntegrantes(){
+  const cont = document.getElementById('listaIntegrantes');
+  cont.innerHTML = DATA.estadoIntegrantes.map(p=>{
+    const pend = p.mesesPendientes.length;
+    return `<div class="row"><div><div class="name">${p.nombre}</div><div class="meta">${pend ? pend+' mes(es) pendiente(s): '+p.mesesPendientes.join(', ') : 'Todo pagado'}</div></div>
+      <span class="pill ${p.alDia?'aldia':'pendiente'}">${p.alDia?'Al día':'Debe'}</span></div>`;
+  }).join('') || '<div class="empty">Todavía no cargaste integrantes</div>';
+}
+
+function renderMovimientos(){
+  const cont = document.getElementById('listaMovimientos');
+  cont.innerHTML = DATA.movimientos.length
+    ? DATA.movimientos.slice().reverse().map(m=>movRow(m)).join('')
+    : '<div class="empty">Sin movimientos registrados</div>';
+}
+
+function renderSelectores(){
+  const opciones = DATA.integrantes.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
+  document.getElementById('movIntegrante').innerHTML = opciones;
+  document.getElementById('selectIndividual').innerHTML = opciones;
+  document.getElementById('movMes').innerHTML = DATA.meses.map(m=>`<option ${m===DATA.config.mesActual?'selected':''}>${m}</option>`).join('');
+}
+
+function renderCharts(){
+  const meses = Object.keys(DATA.serieMensual);
+  const ingresos = meses.map(m=>DATA.serieMensual[m].ingresos);
+  const egresos = meses.map(m=>DATA.serieMensual[m].egresos);
+
+  if(chartSerie) chartSerie.destroy();
+  chartSerie = new Chart(document.getElementById('chartSerie'), {
+    type:'bar',
+    data:{ labels: meses.map(m=>m.split(' ')[0].substring(0,3)), datasets:[
+      {label:'Ingresos', data:ingresos, backgroundColor:'#3F8A62'},
+      {label:'Gastos', data:egresos, backgroundColor:'#BD5335'}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}}}, scales:{y:{ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}}}} }
+  });
+
+  const cats = Object.keys(DATA.gastosPorCategoria);
+  const catVals = cats.map(c=>DATA.gastosPorCategoria[c]);
+  if(chartCategorias) chartCategorias.destroy();
+  chartCategorias = new Chart(document.getElementById('chartCategorias'), {
+    type:'doughnut',
+    data:{ labels: cats.length?cats:['Sin datos'], datasets:[{ data: catVals.length?catVals:[1],
+      backgroundColor:['#16545A','#D98F4E','#3F8A62','#BD5335','#5C6E6C','#8B5E3C'] }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}}} }
+  });
+}
+
+function setTipo(t){
+  tipoActual = t;
+  document.querySelectorAll('#segTipo button').forEach(b=>b.classList.toggle('active', b.dataset.tipo===t));
+  document.getElementById('campoIntegrante').style.display = (t==='CUOTA'||t==='APORTE_SOLIDARIO') ? 'block':'none';
+  document.getElementById('campoMes').style.display = (t==='CUOTA') ? 'block':'none';
+  document.getElementById('campoCategoria').style.display = (t==='EGRESO') ? 'block':'none';
+  document.getElementById('campoDetalle').style.display = (t==='EGRESO'||t==='OTRO_INGRESO') ? 'block':'none';
+}
+setTipo('CUOTA');
+
+async function registrarMovimiento(){
+  const monto = document.getElementById('movMonto').value;
+  if(!monto){ toast('Falta el monto'); return; }
+  const body = { tipo: tipoActual, monto, modalidad: document.getElementById('movModalidad').value };
+
+  if(tipoActual==='CUOTA' || tipoActual==='APORTE_SOLIDARIO'){
+    const sel = document.getElementById('movIntegrante');
+    body.integranteId = sel.value;
+    body.integranteNombre = sel.options[sel.selectedIndex].text;
+  }
+  if(tipoActual==='CUOTA') body.mesCuota = document.getElementById('movMes').value;
+  if(tipoActual==='EGRESO') body.categoria = document.getElementById('movCategoria').value;
+  if(tipoActual==='EGRESO' || tipoActual==='OTRO_INGRESO') body.detalle = document.getElementById('movDetalle').value;
+
+  try{
+    const r = await api('registrarMovimiento', body);
+    document.getElementById('movMonto').value='';
+    document.getElementById('movDetalle').value='';
+    document.getElementById('movCategoria').value='';
+    toast('Movimiento registrado ✅');
+    await boot();
+    showView('movimiento');
+    window.open(r.whatsappUrl, '_blank');
+  }catch(e){ toast('❌ ' + e.message); }
+}
+
+async function refrescarTablero(){
+  try{ await api('actualizarTablero'); toast('✅ Tablero actualizado'); }
+  catch(e){ toast('❌ ' + e.message); }
+}
+
+async function enviarRecordatorios(){
+  try{ const r = await api('enviarRecordatorios'); toast(`✅ Se enviaron ${r.enviados} recordatorios`); }
+  catch(e){ toast('❌ ' + e.message); }
+}
+
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+}
+
+function mostrarAgregarIntegrante(){
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this) this.remove()">
+      <div class="modal">
+        <button class="close-x" onclick="document.getElementById('modalRoot').innerHTML=''">✕</button>
+        <h3>Agregar integrante</h3>
+        <label class="field">Nombre y apellido</label><input id="npNombre" type="text">
+        <label class="field">Email</label><input id="npEmail" type="email">
+        <label class="field">Celular</label><input id="npCelular" type="tel" placeholder="3482xxxxxx">
+        <button class="btn block amber" style="margin-top:16px;" onclick="agregarIntegrante()">Guardar</button>
+      </div></div>`;
+}
+
+async function agregarIntegrante(){
+  const nombre = document.getElementById('npNombre').value.trim();
+  const email = document.getElementById('npEmail').value.trim();
+  const celular = document.getElementById('npCelular').value.trim();
+  if(!nombre){ toast('Falta el nombre'); return; }
+  try{
+    await api('agregarIntegrante', {nombre, email, celular});
+    document.getElementById('modalRoot').innerHTML = '';
+    toast('Integrante agregado ✅');
+    await boot();
+  }catch(e){ toast('❌ ' + e.message); }
+}
+
+// ---------- PDF ----------
+function pdfHeader(doc, subtitulo){
+  doc.setFillColor(22,84,90); doc.rect(0,0,210,28,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(18);
+  doc.text('Peña ' + (DATA.config.nombrePena||''), 14, 15);
+  doc.setFontSize(10); doc.text(subtitulo, 14, 22);
+  doc.setTextColor(30,30,30);
+}
+
+function generarPDFGrupal(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const fecha = new Date().toLocaleDateString('es-AR');
+  pdfHeader(doc, 'Reporte grupal · ' + fecha);
+  let y = 38;
+  doc.setFontSize(13); doc.text('Resumen de caja', 14, y); y+=7;
+  doc.setFontSize(10);
+  [['Cuotas cobradas',DATA.resumen.totalCuotas],['Aportes solidarios',DATA.resumen.totalAportes],
+   ['Otros ingresos',DATA.resumen.totalOtros],['Gastado',DATA.resumen.totalEgresos],['Saldo en caja',DATA.resumen.saldoCaja]]
+   .forEach(l=>{ doc.text(l[0]+':',14,y); doc.text(fmt(l[1]),100,y); y+=6; });
+
+  y+=4; doc.setFontSize(13); doc.text('Gastos por categoría', 14, y); y+=8; doc.setFontSize(9);
+  Object.keys(DATA.gastosPorCategoria).forEach(cat=>{
+    if(y>280){doc.addPage(); y=20;}
+    doc.text(cat, 14, y); doc.text(fmt(DATA.gastosPorCategoria[cat]), 100, y); y+=6;
+  });
+
+  y+=6; doc.setFontSize(13); doc.text('Estado de integrantes', 14, y); y+=8; doc.setFontSize(9);
+  doc.setFont(undefined,'bold'); doc.text('Nombre',14,y); doc.text('Estado',100,y); y+=5;
+  doc.setFont(undefined,'normal'); doc.setDrawColor(220,220,220); doc.line(14,y-3,196,y-3);
+  DATA.estadoIntegrantes.forEach(p=>{
+    if(y>280){doc.addPage(); y=20;}
+    doc.text(p.nombre,14,y);
+    doc.setTextColor(p.alDia?63:189, p.alDia?138:83, p.alDia?98:53);
+    doc.text(p.alDia?'Al día':'Debe '+p.mesesPendientes.length+' mes(es)', 100, y);
+    doc.setTextColor(30,30,30); y+=6;
+  });
+  doc.save('Reporte-grupal-'+fecha.replace(/\//g,'-')+'.pdf');
+}
+
+function generarPDFIndividual(){
+  const id = document.getElementById('selectIndividual').value;
+  const p = DATA.estadoIntegrantes.find(x=>String(x.id)===String(id));
+  if(!p){ toast('Elegí un integrante'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const fecha = new Date().toLocaleDateString('es-AR');
+  pdfHeader(doc, 'Reporte individual · ' + fecha);
+  let y=38;
+  doc.setFontSize(15); doc.text(p.nombre, 14, y); y+=10; doc.setFontSize(10);
+  doc.text('Meses pagados: ' + p.mesesPagados, 14, y); y+=6;
+  doc.text('Meses pendientes: ' + (p.mesesPendientes.join(', ')||'ninguno'), 14, y); y+=10;
+
+  doc.setFontSize(12); doc.text('Historial de movimientos', 14, y); y+=8; doc.setFontSize(9);
+  const historial = DATA.movimientos.filter(m=>String(m.integranteId)===String(id));
+  historial.forEach(m=>{
+    if(y>280){doc.addPage(); y=20;}
+    doc.text(m.fecha + ' · ' + tipoLabel(m.tipo) + (m.mesCuota?' ('+m.mesCuota+')':''), 14, y);
+    doc.text(fmt(m.monto), 160, y); y+=6;
+  });
+  doc.save('Reporte-'+p.nombre.replace(/\s+/g,'-')+'-'+fecha.replace(/\//g,'-')+'.pdf');
+}
+
+if(ACCESS_KEY){ boot(); }
+if('serviceWorker' in navigator){ window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
+</script>
+</body>
+</html>
