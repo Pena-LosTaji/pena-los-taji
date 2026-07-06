@@ -339,24 +339,22 @@ function enviarRecordatorioWA(id){
   if(!p || !persona){ toast('No encontré ese integrante'); return; }
   if(!persona.celular){ toast('Ese integrante no tiene celular cargado'); return; }
 
-  const nombrePena = (DATA.config.nombrePena||'').trim();
-  const penaTxt = nombrePena ? `Peña ${nombrePena}` : 'la peña';
   const mesActual = DATA.config.mesActual;
 
   let estadoBlock, cierre;
   if(!p.alDia){
-    estadoBlock = `⚠️ *Estado:* tenés pendiente *${p.mesesPendientes.join(', ')}*.`;
-    cierre = `Cuando hagas la transferencia, mandanos el comprobante por acá para dejarlo asentado. ¡Muchas gracias! 🍻`;
+    estadoBlock = `🚨 *Estado:* tenés pendiente *${p.mesesPendientes.join(', ')}*.`;
+    cierre = `Cuando hagas la transferencia, mandanos el comprobante por acá para dejarlo asentado. ¡Muchas gracias!`;
   } else if((p.mesesAdelantados||[]).length){
     estadoBlock = `✅ *Estado:* estás al día y hasta adelantaste *${p.mesesAdelantados.join(', ')}*. ¡Sos un capo!`;
-    cierre = `¡Gracias por tu buena onda! 🙌`;
+    cierre = `¡Gracias por tu buena onda!`;
   } else {
     estadoBlock = `✅ *Estado:* estás al día, no tenés deudas anteriores.`;
-    cierre = `¡Gracias por tu buena onda! 🙌`;
+    cierre = `¡Gracias por tu buena onda!`;
   }
 
-  const msg = `Hola *${p.nombre}*! 🎣 ¿Cómo andás?\n\n` +
-    `Te escribimos de la *${penaTxt}* para contarte que está disponible el pago de la cuota de *${mesActual}*. El valor este mes es de *${fmt(DATA.config.montoCuota)}*.\n\n` +
+  const msg = `Hola *${p.nombre}*! 🎣  ¿Cómo andás?\n\n` +
+    `Te escribo para comunicarte que está disponible el pago de la cuota de *${mesActual}*. El valor este mes es de *${fmt(DATA.config.montoCuota)}*.\n\n` +
     `${estadoBlock}\n\n` +
     `💳 *Datos para transferir:*\n` +
     `Alias: *${DATA.config.alias}*\n\n` +
