@@ -188,7 +188,8 @@
       <div class="card">
         <h3>Reporte grupal</h3>
         <p class="empty" style="padding:0 0 12px;">Estado de todos + resumen de caja + gastos por categoría.</p>
-        <button class="btn block" onclick="generarPDFGrupal()">Generar PDF grupal</button>
+        <button class="btn block" onclick="generarPDFGrupal(false)">Descargar PDF grupal</button>
+        <button class="btn block wa" style="margin-top:10px;" onclick="generarPDFGrupal(true)">📲 Enviar PDF a la peña por WhatsApp</button>
       </div>
       <div class="card">
         <h3>Reporte individual</h3>
@@ -319,8 +320,32 @@ function renderIntegrantes(){
     else if(adel) meta = 'Al día · adelantó '+adel+' mes(es): '+p.mesesAdelantados.join(', ');
     else meta = 'Todo pagado';
     return `<div class="row"><div><div class="name">${p.nombre}</div><div class="meta">${meta}</div></div>
-      <span class="pill ${p.alDia?'aldia':'pendiente'}">${p.alDia?'Al día':'Debe'}</span></div>`;
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="pill ${p.alDia?'aldia':'pendiente'}">${p.alDia?'Al día':'Debe'}</span>
+        <button class="btn wa" style="padding:7px 10px; font-size:16px; border-radius:8px;" onclick="enviarRecordatorioWA(${p.id})" title="Recordar por WhatsApp">📲</button>
+      </div></div>`;
   }).join('') || '<div class="empty">Todavía no cargaste integrantes</div>';
+}
+
+function enviarRecordatorioWA(id){
+  const p = DATA.estadoIntegrantes.find(x=>String(x.id)===String(id));
+  const persona = DATA.integrantes.find(x=>String(x.id)===String(id));
+  if(!p || !persona){ toast('No encontré ese integrante'); return; }
+  if(!persona.celular){ toast('Ese integrante no tiene celular cargado'); return; }
+
+  let msg;
+  if(p.alDia && !(p.mesesAdelantados||[]).length){
+    msg = `Hola ${p.nombre}! 👋 Te escribimos de la Peña ${DATA.config.nombrePena} para contarte que estás al día con las cuotas. ¡Gracias! 🎣`;
+  } else if(p.alDia){
+    msg = `Hola ${p.nombre}! 👋 Estás al día y hasta adelantaste: ${p.mesesAdelantados.join(', ')}. ¡Gracias! 🎣`;
+  } else {
+    msg = `Hola ${p.nombre}! 👋 Te escribimos de la Peña ${DATA.config.nombrePena} para recordarte que tenés pendiente: ${p.mesesPendientes.join(', ')}.\n` +
+      `Valor de la cuota: ${fmt(DATA.config.montoCuota)} por mes.\n` +
+      `Alias para transferir: ${DATA.config.alias}\n` +
+      `Cuando hagas la transferencia, mandanos el comprobante para dejarlo asentado. ¡Gracias! 🎣`;
+  }
+  const celularLimpio = persona.celular.toString().replace(/[^0-9]/g,'');
+  window.open(`https://wa.me/54${celularLimpio}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function renderMovimientos(){
@@ -466,7 +491,7 @@ function pdfHeader(doc, subtitulo){
   doc.setTextColor(30,30,30);
 }
 
-function generarPDFGrupal(){
+function generarPDFGrupal(compartir){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const fecha = new Date().toLocaleDateString('es-AR');
@@ -510,7 +535,27 @@ function generarPDFGrupal(){
     doc.setTextColor(30,30,30);
     y += 6 * lineas.length;
   });
-  doc.save('Reporte-grupal-'+fecha.replace(/\//g,'-')+'.pdf');
+
+  const nombreArchivo = 'Reporte-grupal-'+fecha.replace(/\//g,'-')+'.pdf';
+
+  if(compartir){
+    const blob = doc.output('blob');
+    const file = new File([blob], nombreArchivo, {type:'application/pdf'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({
+        files:[file],
+        title:'Reporte Peña ' + (DATA.config.nombrePena||''),
+        text:'Reporte general de la peña al ' + fecha
+      }).catch(()=>{});
+      return;
+    }
+    // Fallback: el celu/navegador no soporta compartir archivos directamente
+    doc.save(nombreArchivo);
+    toast('Tu navegador no permite compartir el PDF directo — se descargó, adjuntalo a mano en WhatsApp');
+    return;
+  }
+
+  doc.save(nombreArchivo);
 }
 
 function generarPDFIndividual(){
