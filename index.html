@@ -480,6 +480,17 @@ function generarPDFGrupal(){
     doc.text(cat, 14, y); doc.text(fmt(DATA.gastosPorCategoria[cat]), 100, y); y+=6;
   });
 
+  if((DATA.planesPago||[]).length){
+    y+=4; doc.setFontSize(13); doc.text('Pagos en cuotas', 14, y); y+=8; doc.setFontSize(9);
+    DATA.planesPago.forEach(p=>{
+      if(y>280){doc.addPage(); y=20;}
+      const estado = p.completo ? 'Completo' : (p.pagadas+' de '+p.total+' · falta cuota '+p.proximaCuota);
+      doc.text(p.nombre, 14, y);
+      doc.text(fmt(p.pagadas*p.montoCuota) + ' (' + estado + ')', 100, y);
+      y += 6;
+    });
+  }
+
   y+=6; doc.setFontSize(13); doc.text('Estado de integrantes', 14, y); y+=8; doc.setFontSize(9);
   doc.setFont(undefined,'bold'); doc.text('Nombre',14,y); doc.text('Estado',100,y); y+=5;
   doc.setFont(undefined,'normal'); doc.setDrawColor(220,220,220); doc.line(14,y-3,196,y-3);
