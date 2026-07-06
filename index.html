@@ -274,8 +274,13 @@ function render(){
   document.getElementById('kpiTransferencia').textContent = fmt(DATA.resumen.cajaTransferencia);
 
   const deben = document.getElementById('listaDeben');
-  deben.innerHTML = DATA.estadoGeneral.deben.length
-    ? DATA.estadoGeneral.deben.map(n=>`<div class="row"><span class="name">${n}</span><span class="pill pendiente">Pendiente</span></div>`).join('')
+  const debenList = DATA.estadoIntegrantes.filter(p=>!p.alDia);
+  deben.innerHTML = debenList.length
+    ? debenList.map(p=>`<div class="row"><span class="name">${p.nombre}</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="pill pendiente">Pendiente</span>
+          <button class="btn wa" style="padding:7px 10px; font-size:16px; border-radius:8px;" onclick="enviarRecordatorioWA(${p.id})" title="Recordar por WhatsApp">📲</button>
+        </div></div>`).join('')
     : '<div class="empty">Nadie debe el mes actual 🎉</div>';
 
   const mm = document.getElementById('listaMovMini');
@@ -344,8 +349,14 @@ function enviarRecordatorioWA(id){
       `Alias para transferir: ${DATA.config.alias}\n` +
       `Cuando hagas la transferencia, mandanos el comprobante para dejarlo asentado. ¡Gracias! 🎣`;
   }
-  const celularLimpio = persona.celular.toString().replace(/[^0-9]/g,'');
-  window.open(`https://wa.me/54${celularLimpio}?text=${encodeURIComponent(msg)}`, '_blank');
+  const celularLimpio = normalizarCelular(persona.celular);
+  window.open(`https://wa.me/${celularLimpio}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function normalizarCelular(cel){
+  let n = (cel||'').toString().replace(/[^0-9]/g,'');
+  if(!n.startsWith('54')) n = '54' + n;
+  return n;
 }
 
 function renderMovimientos(){
