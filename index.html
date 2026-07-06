@@ -339,17 +339,29 @@ function enviarRecordatorioWA(id){
   if(!p || !persona){ toast('No encontré ese integrante'); return; }
   if(!persona.celular){ toast('Ese integrante no tiene celular cargado'); return; }
 
-  let msg;
-  if(p.alDia && !(p.mesesAdelantados||[]).length){
-    msg = `Hola ${p.nombre}! 👋 Te escribimos de la Peña ${DATA.config.nombrePena} para contarte que estás al día con las cuotas. ¡Gracias! 🎣`;
-  } else if(p.alDia){
-    msg = `Hola ${p.nombre}! 👋 Estás al día y hasta adelantaste: ${p.mesesAdelantados.join(', ')}. ¡Gracias! 🎣`;
+  const nombrePena = (DATA.config.nombrePena||'').trim();
+  const penaTxt = nombrePena ? `Peña ${nombrePena}` : 'la peña';
+  const mesActual = DATA.config.mesActual;
+
+  let estadoBlock, cierre;
+  if(!p.alDia){
+    estadoBlock = `⚠️ *Estado:* tenés pendiente *${p.mesesPendientes.join(', ')}*.`;
+    cierre = `Cuando hagas la transferencia, mandanos el comprobante por acá para dejarlo asentado. ¡Muchas gracias! 🍻`;
+  } else if((p.mesesAdelantados||[]).length){
+    estadoBlock = `✅ *Estado:* estás al día y hasta adelantaste *${p.mesesAdelantados.join(', ')}*. ¡Sos un capo!`;
+    cierre = `¡Gracias por tu buena onda! 🙌`;
   } else {
-    msg = `Hola ${p.nombre}! 👋 Te escribimos de la Peña ${DATA.config.nombrePena} para recordarte que tenés pendiente: ${p.mesesPendientes.join(', ')}.\n` +
-      `Valor de la cuota: ${fmt(DATA.config.montoCuota)} por mes.\n` +
-      `Alias para transferir: ${DATA.config.alias}\n` +
-      `Cuando hagas la transferencia, mandanos el comprobante para dejarlo asentado. ¡Gracias! 🎣`;
+    estadoBlock = `✅ *Estado:* estás al día, no tenés deudas anteriores.`;
+    cierre = `¡Gracias por tu buena onda! 🙌`;
   }
+
+  const msg = `Hola *${p.nombre}*! 🎣 ¿Cómo andás?\n\n` +
+    `Te escribimos de la *${penaTxt}* para contarte que está disponible el pago de la cuota de *${mesActual}*. El valor este mes es de *${fmt(DATA.config.montoCuota)}*.\n\n` +
+    `${estadoBlock}\n\n` +
+    `💳 *Datos para transferir:*\n` +
+    `Alias: *${DATA.config.alias}*\n\n` +
+    cierre;
+
   const celularLimpio = normalizarCelular(persona.celular);
   window.open(`https://wa.me/${celularLimpio}?text=${encodeURIComponent(msg)}`, '_blank');
 }
