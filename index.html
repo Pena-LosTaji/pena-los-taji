@@ -137,7 +137,7 @@
 
         <div id="campoIntegrante">
           <label class="field">Integrante</label>
-          <select id="movIntegrante"></select>
+          <select id="movIntegrante" onchange="actualizarMesesDisponibles()"></select>
         </div>
         <div id="campoMes">
           <label class="field">Mes que cubre</label>
@@ -381,7 +381,16 @@ function renderSelectores(){
   const opciones = DATA.integrantes.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
   document.getElementById('movIntegrante').innerHTML = opciones;
   document.getElementById('selectIndividual').innerHTML = opciones;
-  document.getElementById('movMes').innerHTML = DATA.meses.map(m=>`<option ${m===DATA.config.mesActual?'selected':''}>${m}</option>`).join('');
+  actualizarMesesDisponibles();
+}
+
+function actualizarMesesDisponibles(){
+  const selId = document.getElementById('movIntegrante').value;
+  const est = DATA.estadoIntegrantes.find(x=>String(x.id)===String(selId));
+  const pagados = est ? (est.mesesPagadosLista||[]) : [];
+  const opciones = (DATA.mesesHorizonte||DATA.meses).filter(m=>pagados.indexOf(m)===-1);
+  const sel = document.getElementById('movMes');
+  sel.innerHTML = opciones.map(m=>`<option ${m===DATA.config.mesActual?'selected':''}>${m}</option>`).join('');
 }
 
 function renderCharts(){
