@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Mi estado - Peña Los Taji</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F5F0; --surface:#FFFFFF; --ink:#1B2B2A; --ink-soft:#5C6E6C;
+    --river:#16545A; --amber:#D98F4E; --good:#3F8A62; --bad:#BD5335; --line:#E4E0D6; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; min-height:100vh;}
+  h1,h2,h3{font-family:'Fraunces',serif; margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  header.top{background:var(--river); color:#fff; padding:22px 20px 26px; border-radius:0 0 24px 24px;}
+  header.top h1{font-size:22px; font-weight:700;}
+  header.top .sub{opacity:.85; font-size:13px; margin-top:4px;}
+  .wrap{padding:16px; max-width:480px; margin:0 auto;}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px;}
+  .card h3{font-size:15px; color:var(--ink-soft); font-weight:600; margin-bottom:10px; text-transform:uppercase; letter-spacing:.03em;}
+  select{width:100%; padding:12px; border:1.5px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--ink);}
+  .pill{font-size:13px; font-weight:700; padding:6px 14px; border-radius:20px; display:inline-block;}
+  .pill.aldia{background:#E4F1E9; color:var(--good);}
+  .pill.pendiente{background:#FBE6DE; color:var(--bad);}
+  .row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .row .name{font-weight:600; font-size:14.5px;}
+  .empty{text-align:center; padding:26px 10px; color:var(--ink-soft); font-size:13.5px;}
+  .alias-box{background:#f4f4f4; border-left:4px solid var(--amber); padding:12px 14px; border-radius:8px; margin-top:10px;}
+  .alias-box .val{font-family:'IBM Plex Mono'; font-size:16px; font-weight:600;}
+  #resultado{display:none;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>🎣 Mi estado</h1>
+  <div class="sub" id="headerSub">Peña Los Taji · consulta de cuotas</div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h3>¿Quién sos?</h3>
+    <select id="selectPersona" onchange="mostrarEstado()">
+      <option value="">Elegí tu nombre...</option>
+    </select>
+  </div>
+
+  <div id="resultado">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 id="nombrePersona" style="font-size:19px;"></h2>
+        <span class="pill" id="estadoPill"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Cuotas pendientes</h3>
+      <div id="listaPendientes"></div>
+    </div>
+
+    <div class="card" id="cardAdelantado" style="display:none;">
+      <h3>Adelantaste</h3>
+      <div id="listaAdelantados"></div>
+    </div>
+
+    <div class="card">
+      <h3>Para pagar</h3>
+      <p style="font-size:13.5px; color:var(--ink-soft); margin:0 0 8px;">Cuota mensual: <strong class="mono" id="montoCuota"></strong></p>
+      <div class="alias-box">
+        <div style="font-size:12px; color:var(--ink-soft);">Alias</div>
+        <div class="val" id="aliasVal"></div>
+      </div>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin-top:10px;">Mandá el comprobante por WhatsApp al encargado para que quede asentado.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzcSDrVPAkYgZh0pS5UldO9GycL_okH_Mnr1Mm0bHmVai2bjkhb0QblhLVbLaJZDhbM/exec";
+let DATA = null;
+
+async function cargar(){
+  try{
+    const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({action:'getDashboard'}) });
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error);
+    DATA = json;
+    document.getElementById('headerSub').textContent = 'Peña ' + (DATA.config.nombrePena||'') + ' · Cobrando ' + DATA.config.mesActual;
+    const sel = document.getElementById('selectPersona');
+    sel.innerHTML = '<option value="">Elegí tu nombre...</option>' +
+      DATA.estadoIntegrantes.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre))
+        .map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
+  }catch(e){
+    document.getElementById('headerSub').textContent = 'No se pudo cargar la información';
+  }
+}
+
+function fmt(n){ return '$' + Number(n||0).toLocaleString('es-AR'); }
+
+function mostrarEstado(){
+  const id = document.getElementById('selectPersona').value;
+  if(!id){ document.getElementById('resultado').style.display='none'; return; }
+  const p = DATA.estadoIntegrantes.find(x=>String(x.id)===String(id));
+  document.getElementById('resultado').style.display='block';
+  document.getElementById('nombrePersona').textContent = p.nombre;
+
+  const pill = document.getElementById('estadoPill');
+  pill.textContent = p.alDia ? 'Al día' : 'Debe';
+  pill.className = 'pill ' + (p.alDia ? 'aldia' : 'pendiente');
+
+  const lp = document.getElementById('listaPendientes');
+  lp.innerHTML = p.mesesPendientes.length
+    ? p.mesesPendientes.map(m=>`<div class="row"><span class="name">${m}</span><span class="pill pendiente">Pendiente</span></div>`).join('')
+    : '<div class="empty">No tenés cuotas pendientes 🎉</div>';
+
+  const adel = p.mesesAdelantados||[];
+  document.getElementById('cardAdelantado').style.display = adel.length ? 'block' : 'none';
+  if(adel.length){
+    document.getElementById('listaAdelantados').innerHTML = adel.map(m=>`<div class="row"><span class="name">${m}</span><span class="pill aldia">Pagado</span></div>`).join('');
+  }
+
+  document.getElementById('montoCuota').textContent = fmt(DATA.config.montoCuota);
+  document.getElementById('aliasVal').textContent = DATA.config.alias;
+}
+
+cargar();
+</script>
+</body>
+</html>
