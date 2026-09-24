@@ -74,13 +74,6 @@
 </head>
 <body>
 
-<div id="lockScreen" class="locked">
-  <h1>🎣 Peña Los Taji</h1>
-  <div class="sub">Fondo común · v2</div>
-  <input id="keyInput" type="password" placeholder="Clave de acceso" />
-  <button class="btn amber" onclick="unlock()">Ingresar</button>
-</div>
-
 <div id="app" style="display:none;">
   <header class="top">
     <h1 id="tituloPena">Peña Los Taji</h1>
@@ -226,7 +219,6 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbzcSDrVPAkYgZh0pS5UldO9GycL_okH_Mnr1Mm0bHmVai2bjkhb0QblhLVbLaJZDhbM/exec";
-let ACCESS_KEY = localStorage.getItem('pena_key_v2') || "";
 let DATA = null;
 let tipoActual = 'CUOTA';
 let chartSerie=null, chartCategorias=null;
@@ -234,32 +226,22 @@ let chartSerie=null, chartCategorias=null;
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
 
 async function api(action, body){
-  body = body || {}; body.action = action; body.key = ACCESS_KEY;
+  body = body || {}; body.action = action;
   const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(body) });
   const json = await res.json();
   if(!json.ok) throw new Error(json.error || 'Error desconocido');
   return json;
 }
 
-function unlock(){
-  const val = document.getElementById('keyInput').value.trim();
-  if(!val){ toast('Ingresá una clave'); return; }
-  ACCESS_KEY = val; localStorage.setItem('pena_key_v2', val);
-  boot();
-}
-
 async function boot(){
   try{
     const data = await api('getDashboard');
     DATA = data;
-    document.getElementById('lockScreen').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('tabbar').style.display='flex';
     document.getElementById('fabAdd').style.display='block';
     render();
   }catch(e){
-    document.getElementById('lockScreen').style.display='flex';
-    document.getElementById('app').style.display='none';
     toast('❌ ' + e.message);
   }
 }
@@ -612,7 +594,7 @@ function generarPDFIndividual(){
   doc.save('Reporte-'+p.nombre.replace(/\s+/g,'-')+'-'+fecha.replace(/\//g,'-')+'.pdf');
 }
 
-if(ACCESS_KEY){ boot(); }
+boot();
 if('serviceWorker' in navigator){ window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
 </script>
 </body>
