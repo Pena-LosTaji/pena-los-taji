@@ -196,6 +196,11 @@
         <button class="btn block ghost" onclick="enviarRecordatorios()">Enviar a quienes deben</button>
       </div>
       <div class="card">
+        <h3>Link de consulta para los integrantes</h3>
+        <p class="empty" style="padding:0 0 12px;">Compartí este link para que cada uno vea su propio estado, sin poder editar nada:</p>
+        <button class="btn block ghost" onclick="window.open('consulta.html','_blank')">Abrir página de consulta</button>
+      </div>
+      <div class="card">
         <h3>Tablero visual del Sheet</h3>
         <p class="empty" style="padding:0 0 12px;">Se actualiza solo con cada cuota, pero si querés forzarlo:</p>
         <button class="btn block ghost" onclick="refrescarTablero()">Refrescar hoja TABLERO</button>
@@ -355,8 +360,68 @@ function normalizarCelular(cel){
 function renderMovimientos(){
   const cont = document.getElementById('listaMovimientos');
   cont.innerHTML = DATA.movimientos.length
-    ? DATA.movimientos.slice().reverse().map(m=>movRow(m)).join('')
+    ? DATA.movimientos.slice().reverse().map(m=>movRowEditable(m)).join('')
     : '<div class="empty">Sin movimientos registrados</div>';
+}
+
+function movRowEditable(m){
+  const titulo = m.tipo==='CUOTA' ? (m.integranteNombre + ' · ' + m.mesCuota) : (m.detalle || tipoLabel(m.tipo));
+  return `<div class="row"><div><div class="name">${titulo}</div><div class="meta">${m.fecha}${m.categoria? ' · '+m.categoria:''}</div></div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <div style="text-align:right;"><div class="meta mono">${fmt(m.monto)}</div><span class="pill ${tipoPillClass(m.tipo)}">${tipoLabel(m.tipo)}</span></div>
+      <button class="btn ghost" style="padding:6px 8px; font-size:14px; border-radius:8px;" onclick='abrirEdicionMovimiento(${JSON.stringify(m)})' title="Editar">✏️</button>
+      <button class="btn" style="padding:6px 8px; font-size:14px; border-radius:8px; background:var(--bad);" onclick="borrarMovimiento(${m.fila}, '${titulo.replace(/'/g,"\\'")}')" title="Borrar">🗑️</button>
+    </div></div>`;
+}
+
+function abrirEdicionMovimiento(m){
+  const mostrarMes = m.tipo === 'CUOTA';
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this) this.remove()">
+      <div class="modal">
+        <button class="close-x" onclick="document.getElementById('modalRoot').innerHTML=''">✕</button>
+        <h3>Editar movimiento</h3>
+        <p class="empty" style="padding:0 0 10px; text-align:left;">${tipoLabel(m.tipo)}${m.tipo==='CUOTA' ? ' · '+m.integranteNombre : ''}</p>
+        <label class="field">Monto</label>
+        <input id="editMonto" type="number" value="${m.monto}">
+        ${mostrarMes ? `
+        <label class="field">Mes que cubre</label>
+        <select id="editMes">${(DATA.mesesHorizonte||DATA.meses).map(mes=>`<option ${mes===m.mesCuota?'selected':''}>${mes}</option>`).join('')}</select>
+        ` : `
+        <label class="field">Detalle</label>
+        <input id="editDetalle" type="text" value="${(m.detalle||'').replace(/"/g,'&quot;')}">
+        `}
+        ${m.tipo==='EGRESO' ? `
+        <label class="field">Categoría</label>
+        <input id="editCategoria" type="text" value="${(m.categoria||'').replace(/"/g,'&quot;')}">
+        ` : ''}
+        <button class="btn block amber" style="margin-top:16px;" onclick="guardarEdicionMovimiento(${m.fila}, '${m.tipo}')">Guardar cambios</button>
+      </div></div>`;
+}
+
+async function guardarEdicionMovimiento(fila, tipo){
+  const body = { fila, monto: document.getElementById('editMonto').value };
+  if(tipo==='CUOTA') body.mesCuota = document.getElementById('editMes').value;
+  else body.detalle = document.getElementById('editDetalle').value;
+  const catEl = document.getElementById('editCategoria');
+  if(catEl) body.categoria = catEl.value;
+  try{
+    await api('editarMovimiento', body);
+    document.getElementById('modalRoot').innerHTML = '';
+    toast('Movimiento actualizado ✅');
+    await boot();
+    showView('movimiento');
+  }catch(e){ toast('❌ ' + e.message); }
+}
+
+async function borrarMovimiento(fila, titulo){
+  if(!confirm(`¿Borrar "${titulo}"? Esta acción no se puede deshacer.`)) return;
+  try{
+    await api('eliminarMovimiento', {fila});
+    toast('Movimiento borrado ✅');
+    await boot();
+    showView('movimiento');
+  }catch(e){ toast('❌ ' + e.message); }
 }
 
 function renderSelectores(){
